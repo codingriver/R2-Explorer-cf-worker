@@ -1,0 +1,14 @@
+name = "r2-explorer-dev"
+compatibility_date = "2026-07-02"
+main = "index.ts"
+workers_dev = true
+assets = { directory = "../../dashboard/dist/spa", binding = "ASSETS", html_handling = "auto-trailing-slash", not_found_handling = "single-page-application", run_worker_first = true }
+
+[vars]
+PUBLIC_BASE_URL = "https://example.com"
+BASIC_AUTH_USERNAME = "admin"
+
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "your-r2-bucket-name"
+preview_bucket_name = "your-r2-preview-bucket-name"

@@ -1,18 +1,54 @@
 .DS_Store
-node_modules
-dist
-spa
+Thumbs.db
 
-# local env files
-.env.local
-.env.*.local
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+**/dist/
+spa/
+**/spa/
+packages/worker/bin/
+packages/worker/dashboard/
+packages/worker/docs/
+
+# Local env files and secrets
+.env
+.env.*
 **/.env
+**/.env.*
+!.env.example
+!**/.env.example
+.dev.vars
+**/.dev.vars
+
+# Cloudflare Wrangler local state
+.wrangler/
+**/.wrangler/
+packages/worker/dev/wrangler.toml
 
 # Log files
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+
+# Runtime, cache and test artifacts
+*.tsbuildinfo
+.cache/
+**/.cache/
+.quasar/
+**/.quasar/
+coverage/
+**/coverage/
+test-results/
+**/test-results/
+playwright-report/
+**/playwright-report/
+blob-report/
+**/blob-report/
 
 # Editor directories and files
 .idea
@@ -26,27 +62,16 @@ pnpm-debug.log*
 # local tests
 my-r2-explorer
 
-packages/worker/bin
 packages/worker/README.md
 packages/worker/LICENSE
 packages/worker/CHANGELOG.md
-packages/worker/dist
-packages/worker/docs
-packages/worker/dashboard
 packages/worker/r2-explorer-*
-
-packages/worker/dev/.wrangler
+*.tgz
 
 packages/github-action/wrangler.toml
 packages/github-action/src
-
-packages/dashboard/.env
-packages/dashboard/.quasar
-packages/dashboard/test-results
-.dev.vars
 
 template/package-lock.json
 template/node_modules/
 
 packages/docs/site
-packages/worker/coverage
