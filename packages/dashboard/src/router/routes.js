@@ -44,7 +44,6 @@ const routes = [
 				name: "files-file",
 				component: FilesFolderPage,
 			},
-
 			{
 				path: "/:bucket/email",
 				name: "email-home",

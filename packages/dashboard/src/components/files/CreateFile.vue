@@ -5,18 +5,18 @@
         @submit="onSubmit"
       >
         <q-card-section>
-          <div class="text-h6">New File Name</div>
+          <div class="text-h6">{{ mainStore.t("create.fileName") }}</div>
         </q-card-section>
 
         <q-card-section class="q-pt-none">
           <q-input dense v-model="newFileName" autofocus
                    lazy-rules
-                   :rules="[ val => val && val.length > 0 || 'Please type something']" />
+                   :rules="[ val => val && val.length > 0 || mainStore.t('create.required')]" />
         </q-card-section>
 
         <q-card-actions align="right" class="text-primary">
-          <q-btn flat label="Cancel" v-close-popup />
-          <q-btn flat label="Create" type="submit" :loading="loading" />
+          <q-btn flat :label="mainStore.t('common.cancel')" v-close-popup />
+          <q-btn flat :label="mainStore.t('common.create')" type="submit" :loading="loading" />
         </q-card-actions>
       </q-form>
     </q-card>
@@ -74,7 +74,7 @@ export default defineComponent({
 						error?.response?.data?.message ||
 						error?.response?.data ||
 						error?.message ||
-						"Failed to create file.",
+						this.mainStore.t("create.failedFile"),
 					timeout: 10000,
 				});
 			} finally {

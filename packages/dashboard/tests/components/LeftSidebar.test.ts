@@ -19,7 +19,7 @@ describe("LeftSidebar", () => {
 		store.apiReadonly = true;
 		await wrapper.vm.$nextTick();
 
-		expect(wrapper.text()).toContain("Read only");
+		expect(wrapper.text()).toContain("只读");
 	});
 
 	it("shows 'New' label when not readonly", async () => {
@@ -30,7 +30,7 @@ describe("LeftSidebar", () => {
 		store.apiReadonly = false;
 		await wrapper.vm.$nextTick();
 
-		expect(wrapper.text()).toContain("New");
+		expect(wrapper.text()).toContain("新建");
 	});
 
 	it("hides 'New' when readonly", async () => {
@@ -42,7 +42,7 @@ describe("LeftSidebar", () => {
 		await wrapper.vm.$nextTick();
 
 		const btns = wrapper.findAllComponents({ name: "QBtn" });
-		const newBtn = btns.find((b) => b.props("label") === "New");
+		const newBtn = btns.find((b) => b.props("label") === "新建");
 		expect(newBtn).toBeUndefined();
 	});
 
@@ -51,7 +51,7 @@ describe("LeftSidebar", () => {
 			initialRoute: "/my-bucket/files",
 		});
 
-		expect(wrapper.text()).toContain("Files");
+		expect(wrapper.text()).toContain("文件");
 	});
 
 	it("shows Email nav when emailRouting is enabled", async () => {
@@ -62,7 +62,7 @@ describe("LeftSidebar", () => {
 		store.config = { emailRouting: true } as any;
 		await wrapper.vm.$nextTick();
 
-		expect(wrapper.text()).toContain("Email");
+		expect(wrapper.text()).toContain("邮件");
 	});
 
 	it("hides Email nav when emailRouting is false", async () => {
@@ -73,7 +73,7 @@ describe("LeftSidebar", () => {
 		store.config = { emailRouting: false } as any;
 		await wrapper.vm.$nextTick();
 
-		expect(wrapper.text()).not.toContain("Email");
+		expect(wrapper.text()).not.toContain("邮件");
 	});
 
 	it("shows Info button", async () => {
@@ -81,7 +81,19 @@ describe("LeftSidebar", () => {
 			initialRoute: "/my-bucket/files",
 		});
 
-		expect(wrapper.text()).toContain("Info");
+		expect(wrapper.text()).toContain("信息");
+	});
+
+	it("can switch labels to English", async () => {
+		const wrapper = await mountWithContext(LeftSidebar, {
+			initialRoute: "/my-bucket/files",
+		});
+		const store = useMainStore();
+		store.setLocale("en-US");
+		await wrapper.vm.$nextTick();
+
+		expect(wrapper.text()).toContain("Files");
+		expect(wrapper.text()).toContain("Language");
 	});
 
 	describe("isUpdateAvailable", () => {

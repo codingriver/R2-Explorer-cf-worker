@@ -9,7 +9,7 @@
           dense
           outlined
           v-model="searchQuery"
-          placeholder="Search by prefix..."
+          :placeholder="mainStore.t('files.searchPlaceholder')"
           clearable
           class="q-mr-sm"
           style="width: 200px"
@@ -25,10 +25,10 @@
           dense
           icon="link"
           color="primary"
-          label="Manage Shares"
+          :label="mainStore.t('files.manageShares')"
           @click="$refs.shareFile.openManageShares()"
         >
-          <q-tooltip>View and manage all share links</q-tooltip>
+          <q-tooltip>{{ mainStore.t("files.viewManageShares") }}</q-tooltip>
         </q-btn>
       </div>
 
@@ -37,7 +37,7 @@
         <q-table
           ref="table"
           :rows="rows"
-          :columns="columns"
+          :columns="tableColumns"
           row-key="name"
           :loading="loading"
           :hide-pagination="true"
@@ -62,7 +62,7 @@
 
           <template v-slot:no-data>
             <div class="full-width q-my-lg" v-if="!loading">
-              <h6 class="flex items-center justify-center"><q-icon name="folder" color="orange" size="lg" />This folder is empty</h6>
+              <h6 class="flex items-center justify-center"><q-icon name="folder" color="orange" size="lg" />{{ mainStore.t("files.empty") }}</h6>
             </div>
           </template>
 
@@ -91,7 +91,7 @@
                 dense
                 size="sm"
                 color="green"
-                :label="isRowPublic(prop.row) ? 'Public' : 'Private'"
+                :label="isRowPublic(prop.row) ? mainStore.t('common.public') : mainStore.t('common.private')"
                 :model-value="isRowPublic(prop.row)"
                 :disable="publicAccessLoading[prop.row.key] === true"
                 @click.stop
@@ -108,11 +108,11 @@
 
         <div v-if="loadingMore" class="q-pa-md text-center">
           <q-spinner color="primary" size="md" />
-          <div class="q-mt-sm text-grey">Loading more files...</div>
+          <div class="q-mt-sm text-grey">{{ mainStore.t("files.loadingMore") }}</div>
         </div>
 
         <div v-if="!hasMore && rows.length > 0 && !loading" class="q-pa-md text-center text-grey">
-          No more files to load
+          {{ mainStore.t("files.noMore") }}
         </div>
 
       </drag-and-drop>
@@ -223,6 +223,57 @@ export default defineComponent({
 		},
 		searchPrefix: function () {
 			return this.selectedFolder + this.searchQuery;
+		},
+		tableColumns: function () {
+			return [
+				{
+					name: "name",
+					required: true,
+					label: this.mainStore.t("common.name"),
+					align: "left",
+					field: "name",
+					sortable: true,
+					sort: (a, b, rowA, rowB) => {
+						if (rowA.type === "folder") {
+							if (rowB.type === "folder") {
+								return a.localeCompare(b);
+							}
+							return 1;
+						}
+						if (rowB.type === "folder") {
+							return -1;
+						}
+						return a.localeCompare(b);
+					},
+				},
+				{
+					name: "lastModified",
+					required: true,
+					label: this.mainStore.t("files.lastModified"),
+					align: "left",
+					field: "lastModified",
+					sortable: true,
+					sort: (a, b, rowA, rowB) => {
+						return rowA.timestamp - rowB.timestamp;
+					},
+				},
+				{
+					name: "size",
+					required: true,
+					label: this.mainStore.t("common.size"),
+					align: "left",
+					field: "size",
+					sortable: true,
+					sort: (a, b, rowA, rowB) => {
+						return rowA.sizeRaw - rowB.sizeRaw;
+					},
+				},
+				{
+					name: "options",
+					label: "",
+					sortable: false,
+				},
+			];
 		},
 		breadcrumbs: function () {
 			if (this.selectedFolder) {
@@ -359,7 +410,7 @@ export default defineComponent({
 						error?.response?.data?.message ||
 						error?.response?.data ||
 						error?.message ||
-						"Failed to load files.",
+						this.mainStore.t("files.failedLoad"),
 					timeout: 10000,
 				});
 			} finally {
@@ -399,7 +450,7 @@ export default defineComponent({
 						error?.response?.data?.message ||
 						error?.response?.data ||
 						error?.message ||
-						"Failed to load more files.",
+						this.mainStore.t("files.failedLoadMore"),
 					timeout: 10000,
 				});
 			} finally {
@@ -491,7 +542,13 @@ export default defineComponent({
 				this.updateRowPublicAccess(row, response.data);
 				this.q.notify({
 					type: "positive",
-					message: `${row.name} is now ${response.data.effectiveAccess}.`,
+					message: this.mainStore.t("files.publicChanged", {
+						name: row.name,
+						access:
+							response.data.effectiveAccess === "public"
+								? this.mainStore.t("common.public")
+								: this.mainStore.t("common.private"),
+					}),
 					timeout: 3000,
 				});
 			} catch (error) {
@@ -502,7 +559,7 @@ export default defineComponent({
 						error?.response?.data?.message ||
 						error?.response?.data ||
 						error?.message ||
-						"Failed to update public access.",
+						this.mainStore.t("files.failedPublicAccess"),
 					timeout: 10000,
 				});
 			} finally {

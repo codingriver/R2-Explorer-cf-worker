@@ -1,0 +1,14 @@
+{
+  "cookies": [],
+  "origins": [
+    {
+      "origin": "http://localhost:8787",
+      "localStorage": [
+        {
+          "name": "r2_explorer_locale",
+          "value": "en-US"
+        }
+      ]
+    }
+  ]
+}

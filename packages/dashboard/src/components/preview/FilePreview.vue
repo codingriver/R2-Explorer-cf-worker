@@ -11,11 +11,11 @@
         <div>{{ filename }}</div>
 
         <template v-if="editMode">
-          <q-btn icon="delete" label="Cancel" size="md" class="q-ml-md" color="red" dense @click="cancelEdit" />
-          <q-btn icon="save" label="Save" size="md" class="q-ml-md" color="green" dense @click="saveEdit" />
+          <q-btn icon="delete" :label="mainStore.t('preview.cancel')" size="md" class="q-ml-md" color="red" dense @click="cancelEdit" />
+          <q-btn icon="save" :label="mainStore.t('common.save')" size="md" class="q-ml-md" color="green" dense @click="saveEdit" />
         </template>
         <template v-else>
-          <q-btn icon="edit" label="edit" size="md" class="q-ml-md" color="orange" dense @click="enableEdit" />
+          <q-btn icon="edit" :label="mainStore.t('preview.edit')" size="md" class="q-ml-md" color="orange" dense @click="enableEdit" />
         </template>
 
         <q-space />
@@ -42,7 +42,7 @@
             <div class="flex column" style="height: 100%">
               <q-card class="bg-orange-2" flat square>
                 <q-card-section>
-                  File editing is still in tests!
+                  {{ mainStore.t("preview.editingWarning") }}
                 </q-card-section>
               </q-card>
               <div class="file-edit">
@@ -68,7 +68,7 @@
             <div class="text-center">
               <audio controls>
                 <source :src="fileData">
-                Your browser does not support the audio element.
+                {{ mainStore.t("preview.browserNoAudio") }}
               </audio>
             </div>
           </template>
@@ -77,7 +77,7 @@
             <div class="text-center">
               <video controls style="max-width: 100%; height: auto">
                 <source :src="fileData">
-                Your browser does not support the video tag.
+                {{ mainStore.t("preview.browserNoVideo") }}
               </video>
             </div>
           </template>
@@ -114,7 +114,7 @@
             <div class="flex column" style="height: 100%; flex-wrap: nowrap; max-width: 100%; line-break: anywhere;">
               <q-card class="bg-orange-2" flat square>
                 <q-card-section>
-                  This in a unknown file type, opening as text.
+                  {{ mainStore.t("preview.unknownType") }}
                 </q-card-section>
               </q-card>
               <div class="file-edit">
@@ -140,6 +140,7 @@ import {
 	decode,
 } from "src/appUtils";
 import { parseMarkdown } from "src/parsers/markdown";
+import { useMainStore } from "stores/main-store";
 
 export default {
 	components: {
@@ -236,7 +237,7 @@ export default {
 		async openFile(file) {
 			if (bytesToMegabytes(file.size) > 200) {
 				this.q.notify({
-					message: "File is too big to preview.",
+					message: this.mainStore.t("preview.tooBig"),
 					color: "orange",
 				});
 
@@ -333,11 +334,11 @@ export default {
 		markdownParser(text) {
 			return parseMarkdown(text);
 		},
-		csvParser: (text) => {
+		csvParser(text) {
 			let result = "";
 			const rows = text.split("\n");
 			if (rows.length === 0) {
-				return "<h2>Empty csv</h2>";
+				return `<h2>${this.mainStore.t("preview.emptyCsv")}</h2>`;
 			}
 
 			for (const [index, row] of rows.entries()) {
@@ -392,7 +393,9 @@ export default {
 			if (!isValid) {
 				this.q.notify({
 					type: "negative",
-					message: `Content is not valid ${this.type}.`,
+					message: this.mainStore.t("preview.invalidContent", {
+						type: this.type,
+					}),
 				});
 				return;
 			}
@@ -400,7 +403,7 @@ export default {
 			const notif = this.q.notify({
 				group: false,
 				spinner: true,
-				message: "Updating file...",
+				message: this.mainStore.t("preview.updatingFile"),
 				caption: "0%",
 				timeout: 0,
 			});
@@ -426,7 +429,7 @@ export default {
 				icon: "done", // we add an icon
 				spinner: false, // we reset the spinner setting so the icon can be displayed
 				caption: "100%",
-				message: "File updated!",
+				message: this.mainStore.t("fileOptions.fileUpdated"),
 				timeout: 5000, // we will timeout it in 5s
 			});
 
@@ -441,6 +444,7 @@ export default {
 	},
 	setup() {
 		return {
+			mainStore: useMainStore(),
 			q: useQuasar(),
 		};
 	},

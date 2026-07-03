@@ -1,8 +1,8 @@
 <template>
   <div v-if="Object.keys($store.state.uploadingFiles).length > 0" class="uploading-popup">
-    <div class="card">
+      <div class="card">
       <div class="card-header d-flex flex-row">
-        Uploading {{ Object.keys($store.state.uploadingFiles).length }} files
+        {{ mainStore.t("upload.uploadingFiles", { current: Object.keys($store.state.uploadingFiles).length, total: Object.keys($store.state.uploadingFiles).length }) }}
         <button class="btn btn-primary btn-xs btn-close" @click="close"></button>
       </div>
       <div class="card-body">
@@ -29,11 +29,18 @@
 </template>
 
 <script>
+import { useMainStore } from "stores/main-store";
+
 export default {
 	methods: {
 		close: function () {
 			this.$store.dispatch("clearUploadingFiles");
 		},
+	},
+	setup() {
+		return {
+			mainStore: useMainStore(),
+		};
 	},
 };
 </script>

@@ -10,7 +10,7 @@
     <slot></slot>
     <div class="drop-files">
       <div class="box">
-        <h3>Drop files to upload</h3>
+        <h3>{{ mainStore.t("upload.dropFiles") }}</h3>
         <span class="font-28"><i class="bi bi-cloud-upload-fill"></i></span>
       </div>
     </div>
@@ -116,7 +116,7 @@ export default {
 			if (!this.selectedBucket) {
 				this.q.notify({
 					type: "negative",
-					message: "No bucket selected.",
+					message: this.mainStore.t("upload.noBucket"),
 					timeout: 10000,
 				});
 				return;
@@ -144,7 +144,7 @@ export default {
 								error?.response?.data?.message ||
 								error?.response?.data ||
 								error?.message ||
-								`Unable to create folder ${folder}.`,
+								this.mainStore.t("upload.unableCreateFolder", { folder }),
 							timeout: 10000,
 						});
 						return;
@@ -169,7 +169,10 @@ export default {
 			const notif = this.q.notify({
 				group: false,
 				spinner: true,
-				message: `Uploading files 1/${filenames.length}...`,
+				message: this.mainStore.t("upload.uploadingFiles", {
+					current: 1,
+					total: filenames.length,
+				}),
 				caption: "0%",
 				timeout: 0,
 			});
@@ -192,7 +195,10 @@ export default {
 
 					// Update notification with current file count
 					notif({
-						message: `Uploading files ${uploadCount}/${filenames.length}...`,
+						message: this.mainStore.t("upload.uploadingFiles", {
+							current: uploadCount,
+							total: filenames.length,
+						}),
 					});
 
 					const key = targetFolder + file.name;
@@ -263,7 +269,10 @@ export default {
 							);
 						}
 					} catch (e) {
-						const message = `Unable to upload file ${file.name}: ${e.message}`;
+						const message = this.mainStore.t("upload.unableUploadFile", {
+							file: file.name,
+							error: e.message,
+						});
 						console.error(message);
 						this.q.notify({
 							type: "negative",
@@ -273,7 +282,7 @@ export default {
 						notif({
 							icon: "error",
 							spinner: false,
-							message: "Upload failed",
+							message: this.mainStore.t("upload.failed"),
 							caption: file.name,
 							timeout: 5000,
 						});
@@ -290,7 +299,7 @@ export default {
 				icon: "done", // we add an icon
 				spinner: false, // we reset the spinner setting so the icon can be displayed
 				caption: "100%",
-				message: "Files Uploaded!",
+				message: this.mainStore.t("upload.filesUploaded"),
 				timeout: 5000, // we will timeout it in 5s
 			});
 

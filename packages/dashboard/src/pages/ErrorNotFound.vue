@@ -6,7 +6,7 @@
       </div>
 
       <div class="text-h2" style="opacity:.4">
-        Oops. Nothing here...
+        {{ mainStore.t("common.notFound") }}
       </div>
 
       <q-btn
@@ -15,7 +15,7 @@
         text-color="blue"
         unelevated
         to="/"
-        label="Go Home"
+        :label="mainStore.t('nav.files')"
         no-caps
       />
     </div>
@@ -23,9 +23,15 @@
 </template>
 
 <script>
+import { useMainStore } from "stores/main-store";
 import { defineComponent } from "vue";
 
 export default defineComponent({
 	name: "ErrorNotFound",
+	setup() {
+		return {
+			mainStore: useMainStore(),
+		};
+	},
 });
 </script>

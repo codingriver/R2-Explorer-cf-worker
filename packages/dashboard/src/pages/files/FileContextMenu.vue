@@ -1,61 +1,61 @@
 <template>
   <q-list style="min-width: 100px">
     <q-item clickable v-close-popup @click="openObject">
-      <q-item-section>Open</q-item-section>
+      <q-item-section>{{ mainStore.t("common.open") }}</q-item-section>
     </q-item>
     <q-item clickable v-close-popup @click="downloadObject" v-if="prop.row.type === 'file'">
-      <q-item-section>Download</q-item-section>
+      <q-item-section>{{ mainStore.t("common.download") }}</q-item-section>
     </q-item>
     <q-item clickable v-close-popup @click="renameObject" v-if="prop.row.type === 'file'">
-      <q-item-section>Rename</q-item-section>
+      <q-item-section>{{ mainStore.t("common.rename") }}</q-item-section>
     </q-item>
     <q-item clickable v-close-popup @click="duplicateObject">
-      <q-item-section>Duplicate</q-item-section>
+      <q-item-section>{{ mainStore.t("context.duplicate") }}</q-item-section>
     </q-item>
     <q-item clickable v-close-popup @click="updateMetadataObject" v-if="prop.row.type === 'file'">
-      <q-item-section>Update Metadata</q-item-section>
+      <q-item-section>{{ mainStore.t("context.updateMetadata") }}</q-item-section>
     </q-item>
     <q-separator />
     <q-item clickable v-close-popup @click="createShareLink" v-if="prop.row.type === 'file'">
       <q-item-section>
-        <q-item-label>Create Share Link</q-item-label>
-        <q-item-label caption>Public link with optional password</q-item-label>
+        <q-item-label>{{ mainStore.t("context.createShare") }}</q-item-label>
+        <q-item-label caption>{{ mainStore.t("context.createShareCaption") }}</q-item-label>
       </q-item-section>
     </q-item>
     <q-item clickable v-close-popup @click="copyInternalLink">
       <q-item-section>
-        <q-item-label>Copy Internal Link</q-item-label>
-        <q-item-label caption>Link to view in dashboard</q-item-label>
+        <q-item-label>{{ mainStore.t("context.copyInternal") }}</q-item-label>
+        <q-item-label caption>{{ mainStore.t("context.copyInternalCaption") }}</q-item-label>
       </q-item-section>
     </q-item>
     <q-item clickable v-close-popup @click="copyPublicUrl" v-if="prop.row.type === 'file' && bucketPublicUrl">
       <q-item-section>
-        <q-item-label>Copy Public URL</q-item-label>
-        <q-item-label caption>Works when this file is public</q-item-label>
+        <q-item-label>{{ mainStore.t("context.copyPublic") }}</q-item-label>
+        <q-item-label caption>{{ mainStore.t("context.copyPublicCaption") }}</q-item-label>
       </q-item-section>
     </q-item>
     <q-separator />
     <q-item clickable v-close-popup @click="setPublicAccess('public')">
       <q-item-section>
-        <q-item-label>Make Public</q-item-label>
-        <q-item-label caption>Allow direct public URL access</q-item-label>
+        <q-item-label>{{ mainStore.t("context.makePublic") }}</q-item-label>
+        <q-item-label caption>{{ mainStore.t("context.makePublicCaption") }}</q-item-label>
       </q-item-section>
     </q-item>
     <q-item clickable v-close-popup @click="setPublicAccess('private')">
       <q-item-section>
-        <q-item-label>Make Private</q-item-label>
-        <q-item-label caption>Block direct public URL access</q-item-label>
+        <q-item-label>{{ mainStore.t("context.makePrivate") }}</q-item-label>
+        <q-item-label caption>{{ mainStore.t("context.makePrivateCaption") }}</q-item-label>
       </q-item-section>
     </q-item>
     <q-item clickable v-close-popup @click="setPublicAccess('inherit')">
       <q-item-section>
-        <q-item-label>Inherit Parent Access</q-item-label>
-        <q-item-label caption>Use the nearest folder rule</q-item-label>
+        <q-item-label>{{ mainStore.t("context.inheritAccess") }}</q-item-label>
+        <q-item-label caption>{{ mainStore.t("context.inheritAccessCaption") }}</q-item-label>
       </q-item-section>
     </q-item>
     <q-separator />
     <q-item clickable v-close-popup @click="deleteObject">
-      <q-item-section>Delete</q-item-section>
+      <q-item-section>{{ mainStore.t("common.delete") }}</q-item-section>
     </q-item>
   </q-list>
 </template>
@@ -138,13 +138,13 @@ export default {
 			try {
 				await navigator.clipboard.writeText(url);
 				this.q.notify({
-					message: "Link to file copied to clipboard!",
+					message: this.mainStore.t("context.linkCopied"),
 					timeout: 5000,
 					type: "positive",
 				});
 			} catch (err) {
 				this.q.notify({
-					message: `Failed to copy: ${err}`,
+					message: this.mainStore.t("context.copyFailed", { error: err }),
 					timeout: 5000,
 					type: "negative",
 				});
@@ -157,13 +157,13 @@ export default {
 			try {
 				await navigator.clipboard.writeText(url);
 				this.q.notify({
-					message: "Public URL copied to clipboard!",
+					message: this.mainStore.t("context.publicUrlCopied"),
 					timeout: 5000,
 					type: "positive",
 				});
 			} catch (err) {
 				this.q.notify({
-					message: `Failed to copy: ${err}`,
+					message: this.mainStore.t("context.copyFailed", { error: err }),
 					timeout: 5000,
 					type: "negative",
 				});
@@ -178,17 +178,30 @@ export default {
 				);
 				const effectiveAccess = response.data.effectiveAccess;
 				this.q.notify({
-					message: `Public access is now ${effectiveAccess}.`,
+					message: this.mainStore.t("context.publicAccessNow", {
+						access:
+							effectiveAccess === "public"
+								? this.mainStore.t("common.public")
+								: this.mainStore.t("common.private"),
+					}),
 					caption:
 						access === "inherit"
-							? "This item now inherits the nearest folder rule."
-							: `${this.prop.row.name} was set to ${access}.`,
+							? this.mainStore.t("context.inheritsRule")
+							: this.mainStore.t("context.itemSetAccess", {
+									name: this.prop.row.name,
+									access:
+										access === "public"
+											? this.mainStore.t("common.public")
+											: this.mainStore.t("common.private"),
+								}),
 					timeout: 5000,
 					type: "positive",
 				});
 			} catch (err) {
 				this.q.notify({
-					message: `Failed to update public access: ${err.message || err}`,
+					message: this.mainStore.t("context.publicAccessFailed", {
+						error: err.message || err,
+					}),
 					timeout: 5000,
 					type: "negative",
 				});
@@ -213,7 +226,9 @@ export default {
 				URL.revokeObjectURL(url);
 			} catch (err) {
 				this.q.notify({
-					message: `Download failed: ${err.message || err}`,
+					message: this.mainStore.t("context.downloadFailed", {
+						error: err.message || err,
+					}),
 					timeout: 5000,
 					type: "negative",
 				});

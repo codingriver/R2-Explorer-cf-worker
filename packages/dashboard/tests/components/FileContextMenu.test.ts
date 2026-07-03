@@ -36,15 +36,15 @@ describe("FileContextMenu", () => {
 		});
 
 		const text = wrapper.text();
-		expect(text).toContain("Open");
-		expect(text).toContain("Download");
-		expect(text).toContain("Rename");
-		expect(text).toContain("Update Metadata");
-		expect(text).toContain("Delete");
-		expect(text).toContain("Create Share Link");
-		expect(text).toContain("Make Public");
-		expect(text).toContain("Make Private");
-		expect(text).toContain("Inherit Parent Access");
+		expect(text).toContain("打开");
+		expect(text).toContain("下载");
+		expect(text).toContain("重命名");
+		expect(text).toContain("更新元数据");
+		expect(text).toContain("删除");
+		expect(text).toContain("创建分享链接");
+		expect(text).toContain("设为公开");
+		expect(text).toContain("设为私有");
+		expect(text).toContain("继承上级访问规则");
 	});
 
 	it("hides file-only items for a folder", async () => {
@@ -54,15 +54,15 @@ describe("FileContextMenu", () => {
 		});
 
 		const text = wrapper.text();
-		expect(text).toContain("Open");
-		expect(text).toContain("Delete");
-		expect(text).toContain("Make Public");
-		expect(text).toContain("Make Private");
-		expect(text).toContain("Inherit Parent Access");
-		expect(text).not.toContain("Download");
-		expect(text).not.toContain("Rename");
-		expect(text).not.toContain("Update Metadata");
-		expect(text).not.toContain("Create Share Link");
+		expect(text).toContain("打开");
+		expect(text).toContain("删除");
+		expect(text).toContain("设为公开");
+		expect(text).toContain("设为私有");
+		expect(text).toContain("继承上级访问规则");
+		expect(text).not.toContain("下载");
+		expect(text).not.toContain("重命名");
+		expect(text).not.toContain("更新元数据");
+		expect(text).not.toContain("创建分享链接");
 	});
 
 	it("shows Copy Public URL when bucket has publicUrl", async () => {
@@ -77,7 +77,7 @@ describe("FileContextMenu", () => {
 		] as any;
 		await wrapper.vm.$nextTick();
 
-		expect(wrapper.text()).toContain("Copy Public URL");
+		expect(wrapper.text()).toContain("复制公开 URL");
 	});
 
 	it("hides Copy Public URL when no publicUrl", async () => {
@@ -90,7 +90,7 @@ describe("FileContextMenu", () => {
 		store.buckets = [{ name: "my-bucket" }] as any;
 		await wrapper.vm.$nextTick();
 
-		expect(wrapper.text()).not.toContain("Copy Public URL");
+		expect(wrapper.text()).not.toContain("复制公开 URL");
 	});
 
 	it("emits openObject when Open is clicked", async () => {
@@ -99,9 +99,9 @@ describe("FileContextMenu", () => {
 			initialRoute: "/my-bucket/files",
 		});
 
-		// Find the QItem stub containing "Open" and click it
+		// Find the QItem stub containing "打开" and click it
 		const items = wrapper.findAllComponents({ name: "QItem" });
-		const openItem = items.find((i) => i.text().includes("Open"));
+		const openItem = items.find((i) => i.text().includes("打开"));
 		expect(openItem).toBeTruthy();
 		await openItem?.trigger("click");
 
@@ -115,7 +115,7 @@ describe("FileContextMenu", () => {
 		});
 
 		const items = wrapper.findAllComponents({ name: "QItem" });
-		const deleteItem = items.find((i) => i.text().includes("Delete"));
+		const deleteItem = items.find((i) => i.text().includes("删除"));
 		expect(deleteItem).toBeTruthy();
 		await deleteItem?.trigger("click");
 
@@ -129,5 +129,18 @@ describe("FileContextMenu", () => {
 		});
 
 		expect(wrapper.vm.selectedBucket).toBe("my-bucket");
+	});
+
+	it("can render English labels after locale switch", async () => {
+		const wrapper = await mountWithContext(FileContextMenu, {
+			props: { prop: fileProp },
+			initialRoute: "/my-bucket/files",
+		});
+		const store = useMainStore();
+		store.setLocale("en-US");
+		await wrapper.vm.$nextTick();
+
+		expect(wrapper.text()).toContain("Open");
+		expect(wrapper.text()).toContain("Create Share Link");
 	});
 });

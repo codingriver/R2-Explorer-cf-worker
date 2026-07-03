@@ -1,6 +1,6 @@
 <template>
     <q-select :model-value="selectedBucket" @update:model-value="changeBucket" color="blue" stack-label :dense="true" filled bg-color="white"
-              :options="mainStore.buckets.map((obj) => obj.name)" label="Bucket" style="min-width: 100px" />
+              :options="mainStore.buckets.map((obj) => obj.name)" :label="mainStore.t('common.bucket')" style="min-width: 100px" />
 <!--  <q-select filled :options="mainStore.buckets.map((obj) => obj.name)" label="Bucket" stack-label :dense="true" />-->
 
 <!--  <q-field label="Select Bucket" stack-label label-color="white">-->

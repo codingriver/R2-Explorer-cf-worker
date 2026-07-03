@@ -75,7 +75,7 @@
             <div class="full-width q-my-lg" v-if="!loading">
               <h6 class="flex items-center justify-center">
                 <q-icon name="alternate_email" color="orange" size="lg" />
-                This bucket doesn't have Emails
+                {{ mainStore.t("email.noEmails") }}
               </h6>
             </div>
           </template>
@@ -89,7 +89,7 @@
         </q-table>
         <template v-if="!hasMorePages">
           <div class="row justify-center q-my-md">
-            <span>No more emails to load</span>
+            <span>{{ mainStore.t("email.noMore") }}</span>
           </div>
         </template>
         <template v-slot:loading>

@@ -106,5 +106,6 @@ setActivePinia(createPinia());
 
 // Reset Pinia before each test so stores start clean
 beforeEach(() => {
+	localStorage.removeItem("r2_explorer_locale");
 	setActivePinia(createPinia());
 });

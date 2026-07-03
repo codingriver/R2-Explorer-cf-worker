@@ -11,13 +11,14 @@
       :annotation="true"
       :resize="true"
     >
-      <template v-slot:loading> loading content here... </template>
+      <template v-slot:loading> {{ mainStore.t("preview.loadingContent") }} </template>
     </pdf>
   </div>
 </template>
 
 <script>
 import pdf from "components/preview/PdfVuer.vue";
+import { useMainStore } from "stores/main-store";
 
 export default {
 	components: {
@@ -43,6 +44,11 @@ export default {
 				this.numPages = pdf.numPages;
 			});
 		},
+	},
+	setup() {
+		return {
+			mainStore: useMainStore(),
+		};
 	},
 };
 </script>

@@ -15,7 +15,7 @@ import { defineComponent } from "vue";
 export default defineComponent({
 	name: "HomePage",
 	data: () => ({
-		loadingLabel: "Loading...",
+		loadingLabel: "",
 	}),
 	methods: {
 		async openFirstBucket() {
@@ -57,6 +57,9 @@ export default defineComponent({
 		return {
 			mainStore: useMainStore(),
 		};
+	},
+	created() {
+		this.loadingLabel = this.mainStore.t("common.loading");
 	},
 });
 </script>

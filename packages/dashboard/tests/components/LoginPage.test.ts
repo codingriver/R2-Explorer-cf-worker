@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { flushPromises } from "@vue/test-utils";
 import LoginPage from "pages/auth/LoginPage.vue";
 import { useAuthStore } from "stores/auth-store";
+import { useMainStore } from "stores/main-store";
 import { api } from "boot/axios";
 import { mountWithContext, mockServerConfig } from "../helpers";
 
@@ -10,12 +11,25 @@ describe("LoginPage", () => {
 		vi.clearAllMocks();
 	});
 
-	it("renders login form with Sign in title", async () => {
+	it("renders login form in Chinese by default", async () => {
+		const wrapper = await mountWithContext(LoginPage, {
+			initialRoute: "/auth/login",
+		});
+
+		expect(wrapper.text()).toContain("登录");
+		expect(wrapper.text()).toContain("用户名");
+	});
+
+	it("renders login form in English after locale switch", async () => {
+		const mainStore = useMainStore();
+		mainStore.setLocale("en-US");
+
 		const wrapper = await mountWithContext(LoginPage, {
 			initialRoute: "/auth/login",
 		});
 
 		expect(wrapper.text()).toContain("Sign in");
+		expect(wrapper.text()).toContain("Username");
 	});
 
 	it("has remember me toggle defaulting to true", async () => {

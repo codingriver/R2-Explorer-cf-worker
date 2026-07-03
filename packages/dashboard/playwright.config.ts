@@ -13,6 +13,7 @@ export default defineConfig({
 	use: {
 		baseURL: "http://localhost:8787",
 		screenshot: "only-on-failure",
+		storageState: path.join(__dirname, "e2e/storage-state.en.json"),
 		trace: "on-first-retry",
 	},
 	projects: [

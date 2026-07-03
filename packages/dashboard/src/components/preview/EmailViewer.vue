@@ -8,12 +8,12 @@
     <div class="d-flex align-items-start mb-2 mt-1">
       <div class="w-100">
         <small class="float-end">{{ emailData.date }}</small>
-        <small class="text-muted">From: {{ emailData.from?.name }} &lt;{{ emailData.from?.address }}&gt;</small>
+        <small class="text-muted">{{ mainStore.t("email.from") }} {{ emailData.from?.name }} &lt;{{ emailData.from?.address }}&gt;</small>
       </div>
 
     </div>
     <div class="w-100">
-        <small class="text-muted">To:
+        <small class="text-muted">{{ mainStore.t("email.to") }}
           <template v-for="recipient of emailData.to">
             {{ recipient.name }} &lt;{{ recipient.address }}&gt;&semi;
           </template>
@@ -21,7 +21,7 @@
     </div>
 
 
-    <h5 class="mb-3" v-if="!emailData.html && !emailData.text">This email has no HTML or text content</h5>
+    <h5 class="mb-3" v-if="!emailData.html && !emailData.text">{{ mainStore.t("email.noContent") }}</h5>
 
     <template v-if="emailData.html">
       <br/>
@@ -31,7 +31,7 @@
 
     <template v-if="emailData.text">
       <details :open="emailData.html ? undefined : 'open'">
-        <summary>Text</summary>
+        <summary>{{ mainStore.t("email.text") }}</summary>
         <br/>
         <div class="overflow-auto" v-html="emailData.text.replaceAll('\n', '<br>')"></div>
       </details>
@@ -39,7 +39,7 @@
     </template>
 
     <template v-if="emailData.attachments?.length > 0">
-      <h5 class="mb-3">This email has {{ emailData.attachments.length }} attachment(s):</h5>
+      <h5 class="mb-3">{{ mainStore.t("email.withAttachments", { count: emailData.attachments.length }) }}</h5>
       <div class="w-100" v-for="attachment of emailData.attachments" :key="attachment.filename">
         <small class="text-muted">{{ attachment.filename }}</small>
       </div>
@@ -58,6 +58,7 @@
 <script>
 import { convert } from "html-to-text";
 import PostalMime from "postal-mime";
+import { useMainStore } from "stores/main-store";
 
 export default {
 	props: ["filedata"],
@@ -81,6 +82,11 @@ export default {
 	},
 	async mounted() {
 		await this.parseEmail();
+	},
+	setup() {
+		return {
+			mainStore: useMainStore(),
+		};
 	},
 };
 </script>
