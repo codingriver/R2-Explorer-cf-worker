@@ -15,6 +15,9 @@ export type R2ExplorerConfig = {
 	cors?: boolean;
 	cfAccessTeamName?: string;
 	dashboardUrl?: string;
+	publicBaseUrl?: string;
+	apiToken?: string;
+	adminToken?: string;
 	emailRouting?:
 		| {
 				targetBucket: string;
@@ -38,7 +41,11 @@ export type ShareMetadata = {
 
 export type AppEnv = {
 	ASSETS: Fetcher;
-	[key: string]: R2Bucket;
+	API_TOKEN?: string;
+	ADMIN_TOKEN?: string;
+	BASIC_AUTH_USERNAME?: string;
+	BASIC_AUTH_PASSWORD?: string;
+	[key: string]: R2Bucket | Fetcher | string | undefined;
 };
 export type AppVariables = {
 	config: R2ExplorerConfig;

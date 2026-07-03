@@ -8,17 +8,18 @@ export default defineWorkersConfig({
 	test: {
 		poolOptions: {
 			workers: {
-        singleWorker: true,
+				singleWorker: true,
 				wrangler: { configPath: "../dev/wrangler.toml" },
 				miniflare: {
-					compatibilityDate: "2024-11-06", // Or your project's compatibility date
-					compatibilityFlags: ["nodejs_compat"], // Add any necessary flags
+					compatibilityDate: "2026-07-02",
+					compatibilityFlags: ["nodejs_compat"],
 					r2Persist: false,
 					isolatedStorage: true,
 					r2Buckets: {
-						MY_TEST_BUCKET_1: "MY_TEST_BUCKET_1",
-						MY_TEST_BUCKET_2: "MY_TEST_BUCKET_2",
-						teste: "teste",
+						R2: { id: "TEST_R2_BUCKET" },
+						MY_TEST_BUCKET_1: { id: "MY_TEST_BUCKET_1" },
+						MY_TEST_BUCKET_2: { id: "MY_TEST_BUCKET_2" },
+						teste: { id: "teste" },
 					},
 					bindings: {
 						NON_R2_BINDING: { type: "var", value: "some_value" }, // For testing non-bucket bindings

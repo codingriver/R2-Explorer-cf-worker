@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
 import FileContextMenu from "pages/files/FileContextMenu.vue";
 import { useMainStore } from "stores/main-store";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { mountWithContext } from "../helpers";
 
 const fileProp = {
@@ -42,6 +42,9 @@ describe("FileContextMenu", () => {
 		expect(text).toContain("Update Metadata");
 		expect(text).toContain("Delete");
 		expect(text).toContain("Create Share Link");
+		expect(text).toContain("Make Public");
+		expect(text).toContain("Make Private");
+		expect(text).toContain("Inherit Parent Access");
 	});
 
 	it("hides file-only items for a folder", async () => {
@@ -53,6 +56,9 @@ describe("FileContextMenu", () => {
 		const text = wrapper.text();
 		expect(text).toContain("Open");
 		expect(text).toContain("Delete");
+		expect(text).toContain("Make Public");
+		expect(text).toContain("Make Private");
+		expect(text).toContain("Inherit Parent Access");
 		expect(text).not.toContain("Download");
 		expect(text).not.toContain("Rename");
 		expect(text).not.toContain("Update Metadata");
@@ -96,7 +102,8 @@ describe("FileContextMenu", () => {
 		// Find the QItem stub containing "Open" and click it
 		const items = wrapper.findAllComponents({ name: "QItem" });
 		const openItem = items.find((i) => i.text().includes("Open"));
-		await openItem!.trigger("click");
+		expect(openItem).toBeTruthy();
+		await openItem?.trigger("click");
 
 		expect(wrapper.emitted("openObject")).toBeTruthy();
 	});
@@ -109,7 +116,8 @@ describe("FileContextMenu", () => {
 
 		const items = wrapper.findAllComponents({ name: "QItem" });
 		const deleteItem = items.find((i) => i.text().includes("Delete"));
-		await deleteItem!.trigger("click");
+		expect(deleteItem).toBeTruthy();
+		await deleteItem?.trigger("click");
 
 		expect(wrapper.emitted("deleteObject")).toBeTruthy();
 	});

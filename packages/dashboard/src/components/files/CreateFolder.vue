@@ -24,6 +24,7 @@
 </template>
 
 <script>
+import { useQuasar } from "quasar";
 import { ROOT_FOLDER, apiHandler, decode } from "src/appUtils";
 import { useMainStore } from "stores/main-store";
 import { defineComponent } from "vue";
@@ -43,14 +44,27 @@ export default defineComponent({
 		},
 		onSubmit: async function () {
 			this.loading = true;
-			await apiHandler.createFolder(
-				`${this.selectedFolder + this.newFolderName}/`,
-				this.selectedBucket,
-			);
-			this.$bus.emit("fetchFiles");
-			this.loading = false;
-			this.modal = false;
-			this.newFolderName = "";
+			try {
+				await apiHandler.createFolder(
+					`${this.selectedFolder + this.newFolderName}/`,
+					this.selectedBucket,
+				);
+				this.$bus.emit("fetchFiles");
+				this.modal = false;
+				this.newFolderName = "";
+			} catch (error) {
+				this.q.notify({
+					type: "negative",
+					message:
+						error?.response?.data?.message ||
+						error?.response?.data ||
+						error?.message ||
+						"Failed to create folder.",
+					timeout: 10000,
+				});
+			} finally {
+				this.loading = false;
+			}
 		},
 		open: function () {
 			this.modal = true;
@@ -72,9 +86,11 @@ export default defineComponent({
 	},
 	setup() {
 		const mainStore = useMainStore();
+		const q = useQuasar();
 
 		return {
 			mainStore,
+			q,
 		};
 	},
 });

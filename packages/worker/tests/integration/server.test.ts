@@ -42,6 +42,17 @@ describe("Server Endpoints", () => {
 		expect(body.buckets.length).toBeGreaterThanOrEqual(3);
 	});
 
+	it("GET /api/server/config should expose publicBaseUrl when configured", async () => {
+		const app = createTestApp({ publicBaseUrl: "https://example.com" });
+		const request = createTestRequest("/api/server/config");
+
+		const response = await app.fetch(request, env, createExecutionContext());
+		expect(response.status).toBe(200);
+
+		const body = await response.json();
+		expect(body.config.publicBaseUrl).toBe("https://example.com");
+	});
+
 	it("GET /api/server/config should return auth info if authenticated via basic auth", async () => {
 		const appConfig = {
 			basicAuth: { username: "testuser", password: "testpassword" },
@@ -64,6 +75,53 @@ describe("Server Endpoints", () => {
 		expect(body.auth).toEqual({
 			type: "basic-auth",
 			username: "testuser",
+		});
+	});
+
+	it("GET /api/server/config should return auth info if authenticated via API token", async () => {
+		const app = createTestApp({ apiToken: "test-token" });
+
+		const headers = new Headers();
+		headers.set("Authorization", "Bearer test-token");
+		const request = createTestRequest(
+			"/api/server/config",
+			"GET",
+			undefined,
+			headers,
+		);
+
+		const response = await app.fetch(request, env, createExecutionContext());
+		expect(response.status).toBe(200);
+
+		const body = await response.json();
+		expect(body.auth).toEqual({
+			type: "api-token",
+			username: "api-token",
+		});
+	});
+
+	it("GET /api/server/config should accept API token when basic auth is also configured", async () => {
+		const app = createTestApp({
+			apiToken: "test-token",
+			basicAuth: { username: "testuser", password: "testpassword" },
+		});
+
+		const headers = new Headers();
+		headers.set("x-api-key", "test-token");
+		const request = createTestRequest(
+			"/api/server/config",
+			"GET",
+			undefined,
+			headers,
+		);
+
+		const response = await app.fetch(request, env, createExecutionContext());
+		expect(response.status).toBe(200);
+
+		const body = await response.json();
+		expect(body.auth).toEqual({
+			type: "api-token",
+			username: "api-token",
 		});
 	});
 });

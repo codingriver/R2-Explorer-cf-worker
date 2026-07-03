@@ -1,10 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import {
-	createRouter,
-	createMemoryHistory,
-	type RouteRecordRaw,
-} from "vue-router";
 import routes from "src/router/routes";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+	type RouteRecordRaw,
+	createMemoryHistory,
+	createRouter,
+} from "vue-router";
 
 // Stub all heavy components that would trigger side effects
 vi.mock("layouts/MainLayout.vue", () => ({
@@ -38,6 +38,14 @@ describe("routes", () => {
 		await router.isReady();
 
 		expect(router.currentRoute.value.name).toBe("home");
+	});
+
+	it("resolves /admin to admin entry", async () => {
+		const router = createTestRouter();
+		await router.push("/admin");
+		await router.isReady();
+
+		expect(router.currentRoute.value.name).toBe("admin");
 	});
 
 	it("resolves /:bucket/files to files-home", async () => {

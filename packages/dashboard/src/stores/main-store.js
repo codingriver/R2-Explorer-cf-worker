@@ -1,6 +1,21 @@
 import { api } from "boot/axios";
 import { defineStore } from "pinia";
 
+function normalizeNextPath(nextPath) {
+	let normalized = nextPath;
+
+	while (normalized?.startsWith("/auth/login")) {
+		const nestedUrl = new URL(normalized, window.location.origin);
+		const nestedNext = nestedUrl.searchParams.get("next");
+		if (!nestedNext || nestedNext === normalized) {
+			break;
+		}
+		normalized = nestedNext;
+	}
+
+	return normalized;
+}
+
 export const useMainStore = defineStore("main", {
 	state: () => ({
 		// Config
@@ -38,9 +53,18 @@ export const useMainStore = defineStore("main", {
 				this.buckets = response.data.buckets;
 
 				const url = new URL(window.location.href);
-				if (url.searchParams.get("next")) {
-					await router.replace(url.searchParams.get("next"));
-				} else if (url.pathname === "/" || url.pathname === "/auth/login") {
+				const nextPath = normalizeNextPath(url.searchParams.get("next"));
+				const nextIsDashboardEntry =
+					nextPath === "/admin" || nextPath === "/admin/";
+				const currentPathIsDashboardEntry =
+					url.pathname === "/" ||
+					url.pathname === "/admin" ||
+					url.pathname === "/admin/" ||
+					url.pathname === "/auth/login";
+
+				if (nextPath && !nextIsDashboardEntry) {
+					await router.replace(nextPath);
+				} else if (nextIsDashboardEntry || currentPathIsDashboardEntry) {
 					await router.push({
 						name: "files-home",
 						params: { bucket: this.buckets[0].name },
@@ -61,6 +85,10 @@ export const useMainStore = defineStore("main", {
 				if (handleError) {
 					const respText = await error.response.data;
 					if (respText === "Authentication error: Basic Auth required") {
+						if (router.currentRoute.value.path === "/auth/login") {
+							return;
+						}
+
 						await router.push({
 							name: "login",
 							query: { next: router.currentRoute.value.fullPath },

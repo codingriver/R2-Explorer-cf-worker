@@ -91,6 +91,8 @@ export default {
 		inputFiles(event) {
 			this.uploadFiles({
 				"": event.target.files,
+			}).finally(() => {
+				event.target.value = "";
 			});
 		},
 		inputFolders(event) {
@@ -106,9 +108,20 @@ export default {
 				folders[path].push(file);
 			}
 
-			this.uploadFiles(folders);
+			this.uploadFiles(folders).finally(() => {
+				event.target.value = "";
+			});
 		},
 		async uploadFiles(folders) {
+			if (!this.selectedBucket) {
+				this.q.notify({
+					type: "negative",
+					message: "No bucket selected.",
+					timeout: 10000,
+				});
+				return;
+			}
+
 			let totalFiles = 0;
 			let totalSize = 0;
 			const filenames = [];
@@ -122,7 +135,20 @@ export default {
 				if (folder !== "") {
 					const folderKey = `${this.selectedFolder + folder}/`;
 
-					await apiHandler.createFolder(folderKey, this.selectedBucket);
+					try {
+						await apiHandler.createFolder(folderKey, this.selectedBucket);
+					} catch (error) {
+						this.q.notify({
+							type: "negative",
+							message:
+								error?.response?.data?.message ||
+								error?.response?.data ||
+								error?.message ||
+								`Unable to create folder ${folder}.`,
+							timeout: 10000,
+						});
+						return;
+					}
 				}
 
 				totalFiles += files.length;
@@ -131,6 +157,10 @@ export default {
 					filenames.push(file.name);
 					totalSize += file.size;
 				}
+			}
+
+			if (totalFiles === 0) {
+				return;
 			}
 
 			this.$bus.emit("fetchFiles");
@@ -233,7 +263,21 @@ export default {
 							);
 						}
 					} catch (e) {
-						console.error(`Unable to upload file ${file.name}: ${e.message}`);
+						const message = `Unable to upload file ${file.name}: ${e.message}`;
+						console.error(message);
+						this.q.notify({
+							type: "negative",
+							message,
+							timeout: 10000,
+						});
+						notif({
+							icon: "error",
+							spinner: false,
+							message: "Upload failed",
+							caption: file.name,
+							timeout: 5000,
+						});
+						return;
 					}
 
 					uploadSize += file.size;

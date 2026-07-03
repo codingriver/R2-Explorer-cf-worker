@@ -13,7 +13,9 @@ if (process.env.NODE_ENV === "development") {
 }
 const api = axios.create({ baseURL: `${url}/api` });
 
-export default boot(({ app }) => {
+const SESSION_KEY = "r2_explorer_session_token";
+
+export default boot(({ app, router }) => {
 	// for use inside Vue files (Options API) through this.$axios and this.$api
 
 	app.config.globalProperties.$axios = axios;
@@ -23,6 +25,31 @@ export default boot(({ app }) => {
 	app.config.globalProperties.$api = api;
 	// ^ ^ ^ this will allow you to use this.$api (for Vue Options API form)
 	//       so you can easily perform requests against your app's API
+
+	api.interceptors.response.use(
+		(response) => response,
+		async (error) => {
+			const isBasicAuthRequired =
+				error?.response?.status === 401 &&
+				error?.response?.data === "Authentication error: Basic Auth required";
+
+			if (
+				isBasicAuthRequired &&
+				router.currentRoute.value.path !== "/auth/login"
+			) {
+				delete api.defaults.headers.common.Authorization;
+				localStorage.removeItem(SESSION_KEY);
+				sessionStorage.removeItem(SESSION_KEY);
+
+				await router.push({
+					name: "login",
+					query: { next: router.currentRoute.value.fullPath },
+				});
+			}
+
+			return Promise.reject(error);
+		},
+	);
 });
 
 export { api };

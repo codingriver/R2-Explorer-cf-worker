@@ -5,9 +5,114 @@ import {
 	fromHono,
 } from "chanfana";
 import { type ExecutionContext, Hono } from "hono";
-import { basicAuth } from "hono/basic-auth";
 import { cors } from "hono/cors";
 import { z } from "zod";
+
+function extractToken(headerValue?: string | null) {
+	if (!headerValue) {
+		return undefined;
+	}
+
+	if (headerValue.startsWith("Bearer ")) {
+		return headerValue.slice(7).trim();
+	}
+
+	return headerValue.trim();
+}
+
+function isWriteMethod(method: string) {
+	return ["PUT", "POST", "PATCH", "DELETE"].includes(method);
+}
+
+function getConfiguredApiToken(c: AppContext) {
+	return (
+		c.get("config").apiToken ||
+		c.get("config").adminToken ||
+		c.env.API_TOKEN ||
+		c.env.ADMIN_TOKEN ||
+		undefined
+	);
+}
+
+function requestHasApiToken(c: AppContext, apiToken?: string) {
+	if (!apiToken) {
+		return false;
+	}
+
+	const requestToken = extractToken(
+		c.req.header("Authorization") || c.req.header("x-api-key"),
+	);
+
+	return requestToken === apiToken;
+}
+
+function getBasicAuthCredentials(headerValue?: string | null) {
+	if (!headerValue?.startsWith("Basic ")) {
+		return undefined;
+	}
+
+	try {
+		const decoded = atob(headerValue.slice(6).trim());
+		const separatorIndex = decoded.indexOf(":");
+		if (separatorIndex === -1) {
+			return undefined;
+		}
+
+		return {
+			username: decoded.slice(0, separatorIndex),
+			password: decoded.slice(separatorIndex + 1),
+		};
+	} catch {
+		return undefined;
+	}
+}
+
+function requestHasBasicAuth(c: AppContext) {
+	const credentials = getBasicAuthCredentials(c.req.header("Authorization"));
+	if (!credentials) {
+		return false;
+	}
+
+	const users = (
+		Array.isArray(c.get("config").basicAuth)
+			? c.get("config").basicAuth
+			: [c.get("config").basicAuth]
+	) as BasicAuthType[];
+
+	for (const user of users) {
+		if (
+			user.username === credentials.username &&
+			user.password === credentials.password
+		) {
+			c.set("authentication_type", "basic-auth");
+			c.set("authentication_username", credentials.username);
+			return true;
+		}
+	}
+
+	return false;
+}
+
+function getContentTypeFromPath(pathname: string) {
+	const extension = pathname.split(".").pop()?.toLowerCase();
+
+	const mimeTypes: Record<string, string> = {
+		m3u: "text/plain; charset=utf-8",
+		txt: "text/plain; charset=utf-8",
+		json: "application/json; charset=utf-8",
+		html: "text/html; charset=utf-8",
+		css: "text/css",
+		js: "application/javascript",
+		png: "image/png",
+		jpg: "image/jpeg",
+		jpeg: "image/jpeg",
+		webp: "image/webp",
+		svg: "image/svg+xml",
+		zip: "application/zip",
+	};
+
+	return mimeTypes[extension || ""] || "application/octet-stream";
+}
 import { readOnlyMiddleware } from "./foundation/middlewares/readonly";
 import { settings } from "./foundation/settings";
 import { CopyObject } from "./modules/buckets/copyObject";
@@ -16,6 +121,7 @@ import { CreateShareLink } from "./modules/buckets/createShareLink";
 import { DeleteObject } from "./modules/buckets/deleteObject";
 import { DeleteShareLink } from "./modules/buckets/deleteShareLink";
 import { GetObject } from "./modules/buckets/getObject";
+import { GetPublicAccess } from "./modules/buckets/getPublicAccess";
 import { GetShareLink } from "./modules/buckets/getShareLink";
 import { HeadObject } from "./modules/buckets/headObject";
 import { ListObjects } from "./modules/buckets/listObjects";
@@ -24,8 +130,10 @@ import { MoveObject } from "./modules/buckets/moveObject";
 import { CompleteUpload } from "./modules/buckets/multipart/completeUpload";
 import { CreateUpload } from "./modules/buckets/multipart/createUpload";
 import { PartUpload } from "./modules/buckets/multipart/partUpload";
+import { isPublicObjectAccessAllowed } from "./modules/buckets/publicAccess";
 import { PutMetadata } from "./modules/buckets/putMetadata";
 import { PutObject } from "./modules/buckets/putObject";
+import { SetPublicAccess } from "./modules/buckets/setPublicAccess";
 import { dashboardIndex, dashboardRedirect } from "./modules/dashboard";
 import { receiveEmail } from "./modules/emails/receiveEmail";
 import { SendEmail } from "./modules/emails/sendEmail";
@@ -93,30 +201,62 @@ export function R2Explorer(config?: R2ExplorerConfig) {
 			type: "http",
 			scheme: "basic",
 		});
-		app.use(
-			"/api/*",
-			basicAuth({
-				invalidUserMessage: "Authentication error: Basic Auth required",
-				verifyUser: (username, password, c: AppContext) => {
-					const users = (
-						Array.isArray(c.get("config").basicAuth)
-							? c.get("config").basicAuth
-							: [c.get("config").basicAuth]
-					) as BasicAuthType[];
 
-					for (const user of users) {
-						if (user.username === username && user.password === password) {
-							c.set("authentication_type", "basic-auth");
-							c.set("authentication_username", username);
-							return true;
-						}
-					}
+		app.use("/api/*", async (c, next) => {
+			if (c.req.method === "OPTIONS") {
+				await next();
+				return;
+			}
 
-					return false;
-				},
-			}),
-		);
+			if (requestHasApiToken(c, getConfiguredApiToken(c))) {
+				c.set("authentication_type", "api-token");
+				c.set("authentication_username", "api-token");
+				await next();
+				return;
+			}
+
+			if (requestHasBasicAuth(c)) {
+				await next();
+				return;
+			}
+
+			return c.text("Authentication error: Basic Auth required", 401);
+		});
+	} else {
+		app.use("/api/*", async (c, next) => {
+			if (c.req.method === "OPTIONS") {
+				await next();
+				return;
+			}
+
+			const apiToken = getConfiguredApiToken(c);
+			if (!apiToken) {
+				await next();
+				return;
+			}
+
+			if (!requestHasApiToken(c, apiToken)) {
+				return c.text("Authentication required", 401);
+			}
+
+			c.set("authentication_type", "api-token");
+			c.set("authentication_username", "api-token");
+			await next();
+		});
 	}
+
+	app.options("*", (c) => {
+		return new Response(null, {
+			status: 204,
+			headers: {
+				"Access-Control-Allow-Origin": "*",
+				"Access-Control-Allow-Methods":
+					"GET, POST, PUT, PATCH, DELETE, OPTIONS",
+				"Access-Control-Allow-Headers":
+					"Authorization, x-api-key, Content-Type",
+			},
+		});
+	});
 
 	openapi.get("/api/server/config", GetInfo);
 
@@ -136,6 +276,8 @@ export function R2Explorer(config?: R2ExplorerConfig) {
 	openapi.post("/api/buckets/:bucket/:key/share", CreateShareLink);
 	openapi.get("/api/buckets/:bucket/shares", ListShares);
 	openapi.delete("/api/buckets/:bucket/share/:shareId", DeleteShareLink);
+	openapi.get("/api/buckets/:bucket/:key/public-access", GetPublicAccess);
+	openapi.post("/api/buckets/:bucket/:key/public-access", SetPublicAccess);
 
 	// These object routes should be defined last
 	openapi.get("/api/buckets/:bucket/:key", GetObject);
@@ -146,6 +288,68 @@ export function R2Explorer(config?: R2ExplorerConfig) {
 	// Public share access (no authentication required)
 	openapi.get("/share/:shareId", GetShareLink);
 
+	app.get("*", async (c, next) => {
+		const url = new URL(c.req.url);
+		const pathname = url.pathname;
+		const method = c.req.method;
+
+		if (method !== "GET" && method !== "HEAD") {
+			await next();
+			return;
+		}
+
+		if (
+			pathname === "/" ||
+			pathname.startsWith("/api/") ||
+			pathname.startsWith("/admin") ||
+			pathname.startsWith("/auth/") ||
+			pathname.startsWith("/assets/") ||
+			pathname.startsWith("/icons/") ||
+			pathname === "/favicon.ico" ||
+			pathname === "/logo-white.svg"
+		) {
+			await next();
+			return;
+		}
+
+		const bucket = c.env.R2 as R2Bucket | undefined;
+		if (!bucket) {
+			await next();
+			return;
+		}
+
+		const key = decodeURIComponent(pathname.slice(1));
+		if (!(await isPublicObjectAccessAllowed(bucket, key))) {
+			await next();
+			return;
+		}
+
+		const object = await bucket.get(key);
+		if (object === null) {
+			await next();
+			return;
+		}
+
+		const headers = new Headers();
+		object.writeHttpMetadata(headers);
+		headers.set("access-control-allow-origin", "*");
+		headers.set("cache-control", "public, max-age=300");
+		headers.set("etag", object.httpEtag);
+		headers.set("content-length", object.size.toString());
+		headers.set("content-disposition", "inline");
+		headers.set(
+			"content-type",
+			object.httpMetadata?.contentType || getContentTypeFromPath(key),
+		);
+
+		return new Response(method === "HEAD" ? null : object.body, {
+			status: 200,
+			headers,
+		});
+	});
+
+	openapi.get("/admin", dashboardIndex);
+	openapi.get("/admin/*", dashboardRedirect);
 	openapi.get("/", dashboardIndex);
 	openapi.get("*", dashboardRedirect);
 

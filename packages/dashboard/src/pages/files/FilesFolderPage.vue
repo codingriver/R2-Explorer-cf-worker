@@ -86,7 +86,17 @@
           </template>
 
           <template v-slot:body-cell-options="prop">
-            <td class="text-right">
+            <td class="text-right row items-center justify-end no-wrap">
+              <q-toggle
+                dense
+                size="sm"
+                color="green"
+                :label="isRowPublic(prop.row) ? 'Public' : 'Private'"
+                :model-value="isRowPublic(prop.row)"
+                :disable="publicAccessLoading[prop.row.key] === true"
+                @click.stop
+                @update:model-value="setPublicAccessFromToggle(prop.row, $event)"
+              />
               <q-btn round flat icon="more_vert" size="sm">
                 <q-menu>
                   <FileContextMenu :prop="prop" @openObject="openObject" @deleteObject="$refs.options.deleteObject" @renameObject="$refs.options.renameObject" @duplicateObject="$refs.options.duplicateObject" @updateMetadataObject="$refs.options.updateMetadataObject" @createShareLink="$refs.shareFile.openCreateShare" />
@@ -139,6 +149,8 @@ export default defineComponent({
 		loading: false,
 		loadingMore: false,
 		rows: [],
+		publicAccess: {},
+		publicAccessLoading: {},
 		cursor: null,
 		hasMore: true,
 		searchQuery: "",
@@ -301,6 +313,8 @@ export default defineComponent({
 		},
 		resetAndFetchFiles: async function () {
 			this.rows = [];
+			this.publicAccess = {};
+			this.publicAccessLoading = {};
 			this.cursor = null;
 			this.hasMore = true;
 			await this.fetchFiles();
@@ -319,18 +333,38 @@ export default defineComponent({
 
 			this.loading = true;
 
-			const result = await apiHandler.fetchFilePage(
-				this.selectedBucket,
-				this.searchPrefix,
-				"/",
-				this.cursor,
-				this.selectedFolder,
-			);
+			try {
+				const result = await apiHandler.fetchFilePage(
+					this.selectedBucket,
+					this.searchPrefix,
+					"/",
+					this.cursor,
+					this.selectedFolder,
+				);
 
-			this.rows = result.files;
-			this.cursor = result.cursor;
-			this.hasMore = result.truncated;
-			this.loading = false;
+				this.rows = result.files;
+				this.cursor = result.cursor;
+				this.hasMore = result.truncated;
+				await this.loadPublicAccessForRows(result.files);
+			} catch (error) {
+				if (
+					error?.response?.status === 401 &&
+					error?.response?.data === "Authentication error: Basic Auth required"
+				) {
+					return;
+				}
+				this.q.notify({
+					type: "negative",
+					message:
+						error?.response?.data?.message ||
+						error?.response?.data ||
+						error?.message ||
+						"Failed to load files.",
+					timeout: 10000,
+				});
+			} finally {
+				this.loading = false;
+			}
 		},
 		loadMoreFiles: async function () {
 			if (this.loadingMore || !this.hasMore || this.loading) {
@@ -339,18 +373,38 @@ export default defineComponent({
 
 			this.loadingMore = true;
 
-			const result = await apiHandler.fetchFilePage(
-				this.selectedBucket,
-				this.searchPrefix,
-				"/",
-				this.cursor,
-				this.selectedFolder,
-			);
+			try {
+				const result = await apiHandler.fetchFilePage(
+					this.selectedBucket,
+					this.searchPrefix,
+					"/",
+					this.cursor,
+					this.selectedFolder,
+				);
 
-			this.rows = [...this.rows, ...result.files];
-			this.cursor = result.cursor;
-			this.hasMore = result.truncated;
-			this.loadingMore = false;
+				this.rows = [...this.rows, ...result.files];
+				this.cursor = result.cursor;
+				this.hasMore = result.truncated;
+				await this.loadPublicAccessForRows(result.files);
+			} catch (error) {
+				if (
+					error?.response?.status === 401 &&
+					error?.response?.data === "Authentication error: Basic Auth required"
+				) {
+					return;
+				}
+				this.q.notify({
+					type: "negative",
+					message:
+						error?.response?.data?.message ||
+						error?.response?.data ||
+						error?.message ||
+						"Failed to load more files.",
+					timeout: 10000,
+				});
+			} finally {
+				this.loadingMore = false;
+			}
 		},
 		handleScroll: function (event) {
 			const container = this.$refs.pageContainer;
@@ -375,6 +429,88 @@ export default defineComponent({
 
 			const file = await apiHandler.headFile(this.selectedBucket, key);
 			this.$refs.preview.openFile(file);
+		},
+		updateRowPublicAccess: function (row, accessData) {
+			const nextPublicAccess = { ...this.publicAccess };
+
+			if (accessData) {
+				nextPublicAccess[row.key] = accessData;
+			} else {
+				delete nextPublicAccess[row.key];
+			}
+
+			this.publicAccess = nextPublicAccess;
+
+			const rowIndex = this.rows.findIndex((item) => item.key === row.key);
+			if (rowIndex !== -1) {
+				const nextRow = { ...this.rows[rowIndex] };
+				if (accessData) {
+					nextRow.publicAccess = accessData;
+				} else {
+					delete nextRow.publicAccess;
+				}
+				this.rows.splice(rowIndex, 1, nextRow);
+			}
+		},
+		isRowPublic: function (row) {
+			const access = row.publicAccess || this.publicAccess[row.key];
+			return access?.effectiveAccess === "public";
+		},
+		loadPublicAccessForRows: async function (rows) {
+			await Promise.allSettled(
+				rows.map(async (row) => {
+					const response = await apiHandler.getPublicAccess(
+						this.selectedBucket,
+						row.key,
+					);
+					this.updateRowPublicAccess(row, response.data);
+				}),
+			);
+		},
+		setPublicAccessFromToggle: async function (row, isPublic) {
+			const previousAccess = row.publicAccess || this.publicAccess[row.key];
+			const access = isPublic ? "public" : "private";
+
+			this.publicAccessLoading = {
+				...this.publicAccessLoading,
+				[row.key]: true,
+			};
+			this.updateRowPublicAccess(row, {
+				key: row.key,
+				access,
+				effectiveAccess: access,
+				inheritedFrom: row.key,
+			});
+
+			try {
+				const response = await apiHandler.setPublicAccess(
+					this.selectedBucket,
+					row.key,
+					access,
+				);
+				this.updateRowPublicAccess(row, response.data);
+				this.q.notify({
+					type: "positive",
+					message: `${row.name} is now ${response.data.effectiveAccess}.`,
+					timeout: 3000,
+				});
+			} catch (error) {
+				this.updateRowPublicAccess(row, previousAccess);
+				this.q.notify({
+					type: "negative",
+					message:
+						error?.response?.data?.message ||
+						error?.response?.data ||
+						error?.message ||
+						"Failed to update public access.",
+					timeout: 10000,
+				});
+			} finally {
+				this.publicAccessLoading = {
+					...this.publicAccessLoading,
+					[row.key]: false,
+				};
+			}
 		},
 	},
 	created() {

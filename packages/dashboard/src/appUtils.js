@@ -407,4 +407,12 @@ export const apiHandler = {
 	deleteShareLink: (bucket, shareId) => {
 		return api.delete(`/buckets/${bucket}/share/${shareId}`);
 	},
+	getPublicAccess: (bucket, key) => {
+		return api.get(`/buckets/${bucket}/${encode(key)}/public-access`);
+	},
+	setPublicAccess: (bucket, key, access) => {
+		return api.post(`/buckets/${bucket}/${encode(key)}/public-access`, {
+			access,
+		});
+	},
 };

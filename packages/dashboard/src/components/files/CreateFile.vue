@@ -24,6 +24,7 @@
 </template>
 
 <script>
+import { useQuasar } from "quasar";
 import { ROOT_FOLDER, apiHandler, decode, encode } from "src/appUtils";
 import { useMainStore } from "stores/main-store";
 import { defineComponent } from "vue";
@@ -44,28 +45,41 @@ export default defineComponent({
 		onSubmit: async function () {
 			this.loading = true;
 
-			const newFile = new Blob([""], { type: "text/plain" });
-			await apiHandler.uploadObjects(
-				newFile,
-				this.selectedFolder + this.newFileName,
-				this.selectedBucket,
-			);
+			try {
+				const newFile = new Blob([""], { type: "text/plain" });
+				await apiHandler.uploadObjects(
+					newFile,
+					this.selectedFolder + this.newFileName,
+					this.selectedBucket,
+				);
 
-			this.$bus.emit("fetchFiles");
+				this.$bus.emit("fetchFiles");
 
-			// TODO: open the new file in preview and edit mode
-			// await this.$router.push({
-			//   name: "files-file",
-			//   params: {
-			//     bucket: this.$route.params.bucket,
-			//     folder: this.$route.params.folder || ROOT_FOLDER,
-			//     file: encode(this.newFileName)
-			//   }
-			// });
+				// TODO: open the new file in preview and edit mode
+				// await this.$router.push({
+				//   name: "files-file",
+				//   params: {
+				//     bucket: this.$route.params.bucket,
+				//     folder: this.$route.params.folder || ROOT_FOLDER,
+				//     file: encode(this.newFileName)
+				//   }
+				// });
 
-			this.loading = false;
-			this.modal = false;
-			this.newFileName = "";
+				this.modal = false;
+				this.newFileName = "";
+			} catch (error) {
+				this.q.notify({
+					type: "negative",
+					message:
+						error?.response?.data?.message ||
+						error?.response?.data ||
+						error?.message ||
+						"Failed to create file.",
+					timeout: 10000,
+				});
+			} finally {
+				this.loading = false;
+			}
 		},
 		open: function () {
 			this.modal = true;
@@ -87,9 +101,11 @@ export default defineComponent({
 	},
 	setup() {
 		const mainStore = useMainStore();
+		const q = useQuasar();
 
 		return {
 			mainStore,
+			q,
 		};
 	},
 });

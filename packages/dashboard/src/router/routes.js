@@ -25,6 +25,11 @@ const routes = [
 				component: HomePage,
 			},
 			{
+				path: "/admin",
+				name: "admin",
+				component: HomePage,
+			},
+			{
 				path: "/:bucket/files",
 				name: "files-home",
 				component: FilesFolderPage,

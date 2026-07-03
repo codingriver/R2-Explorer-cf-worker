@@ -137,13 +137,17 @@ export class GetShareLink extends OpenAPIRoute {
 		// Return the file with proper headers
 		const headers = new Headers();
 		file.writeHttpMetadata(headers);
+		const contentType = headers.get("content-type");
+		if (contentType?.startsWith("text/") && !/charset/i.test(contentType)) {
+			headers.set("content-type", `${contentType}; charset=utf-8`);
+		}
 		headers.set("etag", file.httpEtag);
 
-		// Add content disposition for download
+		// Public share links should open in the browser when the content type allows it.
 		const fileName = shareMetadata.key.split("/").pop() || "download";
 		headers.set(
 			"Content-Disposition",
-			`attachment; filename="${encodeURIComponent(fileName)}"`,
+			`inline; filename="${encodeURIComponent(fileName)}"`,
 		);
 
 		return new Response(file.body, {

@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { setActivePinia, createPinia } from "pinia";
-import { useMainStore } from "stores/main-store";
 import { api } from "boot/axios";
+import { createPinia, setActivePinia } from "pinia";
+import { useMainStore } from "stores/main-store";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { mockServerConfig } from "../helpers";
 
 describe("main-store", () => {
@@ -108,6 +108,34 @@ describe("main-store", () => {
 			});
 		});
 
+		it("does not nest login redirects when already on the login page", async () => {
+			vi.mocked(api.get).mockRejectedValue({
+				response: {
+					status: 401,
+					data: "Authentication error: Basic Auth required",
+				},
+			});
+
+			const mockRouter = {
+				push: vi.fn(),
+				replace: vi.fn(),
+				currentRoute: {
+					value: {
+						path: "/auth/login",
+						fullPath: "/auth/login?next=/admin",
+					},
+				},
+			};
+
+			await store.loadServerConfigs(
+				mockRouter as any,
+				{ notify: vi.fn() },
+				true,
+			);
+
+			expect(mockRouter.push).not.toHaveBeenCalled();
+		});
+
 		it("throws on error when handleError=false", async () => {
 			const error = {
 				response: { status: 500, data: "Server error" },
@@ -146,6 +174,64 @@ describe("main-store", () => {
 			await store.loadServerConfigs(mockRouter as any, {} as any);
 
 			expect(mockRouter.replace).toHaveBeenCalledWith("/other-bucket/files");
+		});
+
+		it("opens the first bucket when ?next points at /admin", async () => {
+			const serverConfig = mockServerConfig();
+			vi.mocked(api.get).mockResolvedValue({ data: serverConfig });
+
+			const mockRouter = {
+				push: vi.fn(),
+				replace: vi.fn(),
+				currentRoute: { value: { fullPath: "/auth/login?next=/admin" } },
+			};
+
+			Object.defineProperty(window, "location", {
+				value: {
+					href: "http://localhost/auth/login?next=/admin",
+					origin: "http://localhost",
+				},
+				writable: true,
+			});
+
+			await store.loadServerConfigs(mockRouter as any, {} as any);
+
+			expect(mockRouter.replace).not.toHaveBeenCalled();
+			expect(mockRouter.push).toHaveBeenCalledWith({
+				name: "files-home",
+				params: { bucket: "my-bucket" },
+			});
+		});
+
+		it("opens the first bucket when ?next contains a nested login redirect to /admin", async () => {
+			const serverConfig = mockServerConfig();
+			vi.mocked(api.get).mockResolvedValue({ data: serverConfig });
+
+			const mockRouter = {
+				push: vi.fn(),
+				replace: vi.fn(),
+				currentRoute: {
+					value: {
+						fullPath: "/auth/login?next=/auth/login?next=/admin",
+					},
+				},
+			};
+
+			Object.defineProperty(window, "location", {
+				value: {
+					href: "http://localhost/auth/login?next=/auth/login?next=/admin",
+					origin: "http://localhost",
+				},
+				writable: true,
+			});
+
+			await store.loadServerConfigs(mockRouter as any, {} as any);
+
+			expect(mockRouter.replace).not.toHaveBeenCalled();
+			expect(mockRouter.push).toHaveBeenCalledWith({
+				name: "files-home",
+				params: { bucket: "my-bucket" },
+			});
 		});
 	});
 });

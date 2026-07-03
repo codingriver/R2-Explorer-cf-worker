@@ -31,7 +31,26 @@
     <q-item clickable v-close-popup @click="copyPublicUrl" v-if="prop.row.type === 'file' && bucketPublicUrl">
       <q-item-section>
         <q-item-label>Copy Public URL</q-item-label>
-        <q-item-label caption>Direct link via public domain</q-item-label>
+        <q-item-label caption>Works when this file is public</q-item-label>
+      </q-item-section>
+    </q-item>
+    <q-separator />
+    <q-item clickable v-close-popup @click="setPublicAccess('public')">
+      <q-item-section>
+        <q-item-label>Make Public</q-item-label>
+        <q-item-label caption>Allow direct public URL access</q-item-label>
+      </q-item-section>
+    </q-item>
+    <q-item clickable v-close-popup @click="setPublicAccess('private')">
+      <q-item-section>
+        <q-item-label>Make Private</q-item-label>
+        <q-item-label caption>Block direct public URL access</q-item-label>
+      </q-item-section>
+    </q-item>
+    <q-item clickable v-close-popup @click="setPublicAccess('inherit')">
+      <q-item-section>
+        <q-item-label>Inherit Parent Access</q-item-label>
+        <q-item-label caption>Use the nearest folder rule</q-item-label>
       </q-item-section>
     </q-item>
     <q-separator />
@@ -145,6 +164,31 @@ export default {
 			} catch (err) {
 				this.q.notify({
 					message: `Failed to copy: ${err}`,
+					timeout: 5000,
+					type: "negative",
+				});
+			}
+		},
+		setPublicAccess: async function (access) {
+			try {
+				const response = await apiHandler.setPublicAccess(
+					this.selectedBucket,
+					this.prop.row.key,
+					access,
+				);
+				const effectiveAccess = response.data.effectiveAccess;
+				this.q.notify({
+					message: `Public access is now ${effectiveAccess}.`,
+					caption:
+						access === "inherit"
+							? "This item now inherits the nearest folder rule."
+							: `${this.prop.row.name} was set to ${access}.`,
+					timeout: 5000,
+					type: "positive",
+				});
+			} catch (err) {
+				this.q.notify({
+					message: `Failed to update public access: ${err.message || err}`,
 					timeout: 5000,
 					type: "negative",
 				});

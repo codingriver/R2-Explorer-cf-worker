@@ -4,9 +4,51 @@ import { createTestApp, createTestRequest } from "./setup";
 
 describe("Dashboard Endpoints", () => {
 	describe("dashboardIndex (GET /)", () => {
+		it("redirects the root path to /admin", async () => {
+			const mockAssetsResponse = new Response("Dashboard Content", {
+				status: 200,
+			});
+			const mockAssets = {
+				fetch: vi.fn().mockResolvedValue(mockAssetsResponse),
+			};
+			const app = createTestApp();
+			const request = createTestRequest("/");
+			const currentEnv = { ...testEnv, ASSETS: mockAssets as any };
+
+			const response = await app.fetch(
+				request,
+				currentEnv,
+				createExecutionContext(),
+			);
+
+			expect(response.status).toBe(302);
+			expect(response.headers.get("location")).toBe("/admin");
+		});
+
+		it("redirects /admin to login when basic auth is configured", async () => {
+			const mockAssets = {
+				fetch: vi.fn().mockResolvedValue(new Response("Dashboard Content")),
+			};
+			const app = createTestApp({
+				basicAuth: { username: "admin", password: "password" },
+			});
+			const request = createTestRequest("/admin");
+			const currentEnv = { ...testEnv, ASSETS: mockAssets as any };
+
+			const response = await app.fetch(
+				request,
+				currentEnv,
+				createExecutionContext(),
+			);
+
+			expect(response.status).toBe(302);
+			expect(response.headers.get("location")).toBe("/auth/login?next=/admin");
+			expect(mockAssets.fetch).not.toHaveBeenCalled();
+		});
+
 		it("should return 500 if ASSETS binding is undefined", async () => {
 			const app = createTestApp(); // Test environment by default might not have ASSETS
-			const request = createTestRequest("/");
+			const request = createTestRequest("/admin");
 			// Make sure ASSETS is truly undefined for this test
 			const currentEnv = { ...testEnv };
 			delete (currentEnv as any).ASSETS;
@@ -23,7 +65,7 @@ describe("Dashboard Endpoints", () => {
 
 		it("should return 500 if ASSETS.fetch is not a function (simulating invalid ASSETS binding)", async () => {
 			const app = createTestApp();
-			const request = createTestRequest("/");
+			const request = createTestRequest("/admin");
 			// ASSETS is defined, but not a valid KVNamespace or Fetcher
 			const currentEnv = { ...testEnv, ASSETS: {} as any };
 
@@ -48,7 +90,7 @@ describe("Dashboard Endpoints", () => {
 				fetch: vi.fn().mockResolvedValue(mockAssetsResponse),
 			};
 			const app = createTestApp();
-			const request = createTestRequest("/");
+			const request = createTestRequest("/admin");
 			const currentEnv = { ...testEnv, ASSETS: mockAssets as any };
 
 			const response = await app.fetch(
@@ -56,12 +98,9 @@ describe("Dashboard Endpoints", () => {
 				currentEnv,
 				createExecutionContext(),
 			);
-			// Corrected: dashboardIndex is hardcoded to return 500 and not call fetch
-			expect(mockAssets.fetch).not.toHaveBeenCalled();
-			expect(response.status).toBe(500);
-			expect(await response.text()).toContain(
-				"ASSETS binding is not pointing to a valid dashboard",
-			);
+			expect(mockAssets.fetch).toHaveBeenCalledTimes(1);
+			expect(response.status).toBe(200);
+			expect(await response.text()).toBe("Dashboard Content");
 		});
 	});
 
