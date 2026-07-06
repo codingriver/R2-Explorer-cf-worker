@@ -1,5 +1,12 @@
 import { describe, it, expect, vi } from "vitest";
-import { encode, decode, bytesToSize, sleep, retryWithBackoff } from "src/appUtils";
+import {
+	encode,
+	decode,
+	bytesToSize,
+	formatDateTimeToSecond,
+	sleep,
+	retryWithBackoff,
+} from "src/appUtils";
 
 describe("encode / decode", () => {
 	it("round-trips a simple key", () => {
@@ -51,6 +58,17 @@ describe("bytesToSize", () => {
 
 	it("rounds appropriately", () => {
 		expect(bytesToSize(1536)).toBe("2 KB"); // 1.5 KB rounds to 2
+	});
+});
+
+describe("formatDateTimeToSecond", () => {
+	it("formats local date time down to seconds", () => {
+		const date = new Date(2026, 6, 2, 3, 4, 5);
+		expect(formatDateTimeToSecond(date)).toBe("2026/7/2 03:04:05");
+	});
+
+	it("returns placeholder for invalid dates", () => {
+		expect(formatDateTimeToSecond(new Date("invalid"))).toBe("--");
 	});
 });
 

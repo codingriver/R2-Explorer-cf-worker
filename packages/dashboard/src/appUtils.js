@@ -11,7 +11,7 @@ function mapFile(obj, prefix) {
 		hash: encode(obj.key),
 		nameHash: encode(obj.key.replace(prefix, "")),
 		name: obj.key.replace(prefix, ""),
-		lastModified: timeSince(date),
+		lastModified: formatDateTimeToSecond(date),
 		timestamp: date.getTime(),
 		size: bytesToSize(obj.size),
 		sizeRaw: obj.size,
@@ -96,6 +96,16 @@ export const timeSince = (date) => {
 	calc = Math.floor(interval);
 	return calc + (calc === 1 ? " second" : " seconds");
 };
+
+export const formatDateTimeToSecond = (date) => {
+	if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+		return "--";
+	}
+
+	const pad = (value) => String(value).padStart(2, "0");
+	return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+};
+
 export const bytesToSize = (bytes) => {
 	const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
 	if (bytes === 0) return "0 Byte";
