@@ -40,7 +40,9 @@ function requestHasApiToken(c: AppContext, apiToken?: string) {
 	}
 
 	const requestToken = extractToken(
-		c.req.header("Authorization") || c.req.header("x-api-key"),
+		c.req.header("Authorization") ||
+			c.req.header("x-api-key") ||
+			(["GET", "HEAD"].includes(c.req.method) ? c.req.query("token") : null),
 	);
 
 	return requestToken === apiToken;
@@ -138,6 +140,7 @@ import { dashboardIndex, dashboardRedirect } from "./modules/dashboard";
 import { receiveEmail } from "./modules/emails/receiveEmail";
 import { SendEmail } from "./modules/emails/sendEmail";
 import { GetInfo } from "./modules/server/getInfo";
+import { registerSimpleApiRoutes } from "./modules/simpleApi";
 import type {
 	AppContext,
 	AppEnv,
@@ -259,6 +262,8 @@ export function R2Explorer(config?: R2ExplorerConfig) {
 	});
 
 	openapi.get("/api/server/config", GetInfo);
+
+	registerSimpleApiRoutes(app);
 
 	openapi.get("/api/buckets/:bucket", ListObjects);
 	openapi.post("/api/buckets/:bucket/move", MoveObject);

@@ -16,6 +16,7 @@ export type R2ExplorerConfig = {
 	cfAccessTeamName?: string;
 	dashboardUrl?: string;
 	publicBaseUrl?: string;
+	defaultBucket?: string;
 	apiToken?: string;
 	adminToken?: string;
 	emailRouting?:
@@ -43,6 +44,7 @@ export type AppEnv = {
 	ASSETS: Fetcher;
 	API_TOKEN?: string;
 	ADMIN_TOKEN?: string;
+	DEFAULT_BUCKET?: string;
 	BASIC_AUTH_USERNAME?: string;
 	BASIC_AUTH_PASSWORD?: string;
 	[key: string]: R2Bucket | Fetcher | string | undefined;
